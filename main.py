@@ -18,20 +18,21 @@ class DefaultReader:
             return result
 
 class Processor(Protocol[T, U]):
-    def process(self, input: T, freq: dict[str, int]) -> U: ...
+    def process(self, input: T, freq: dict[str, int], short_dict: dict[str, int]) -> U: ...
+    # sort_dict 简码级数
 
 class DefaultProcessor:
     def __init__(self, shorter: Callable[[str], str]):
         self.shorter = shorter
         pass
 
-    def process(self, input: list[tuple[str, str]], freq: dict[str, int]) -> list[tuple[str, str, int]]:
+    def process(self, input: list[tuple[str, str]], freq: dict[str, int], short_dict: dict[str, int]) -> list[tuple[str, str, int]]:
         反码表: DefaultDict[str, list[tuple[str, str]]] = defaultdict(list)
         for entry in input:
             反码表[self.shorter(entry[1])].append(entry)
         result: list[tuple[str, str, int]] = []
         for entry in 反码表.values():
-            entry = sorted(entry, key=lambda x: len(x[1]))
+            entry = sorted(entry, key=lambda x: short_dict.get(x[0], len(x[1])))
             频率们 = [freq.get(x[0], 0) for x in entry]
             频率们 = sorted(频率们, reverse=True)
             for entry2, freq2 in zip(entry, 频率们):
@@ -52,12 +53,22 @@ if __name__ == '__main__':
     for 行 in findall(r'^(.+)\t(\d+)$', text, flags=M):
         freq[行[0]] = int(行[1])
     
+    short_dict: dict[str, int] = {}
+    try:
+        with open('简码级数.txt') as f:
+            text = f.read()
+            for 行 in findall(r'^(.+)\t(\d)$', text, flags=M):
+                short_dict[行[0]] = int(行[1])
+    except:
+        pass
+    
     with open('output.txt', 'w') as f:
         f.write(
             default_to_string(
                 processor.process(
                     reader.read(),
-                    freq
+                    freq,
+                    short_dict
                 )
             )
         )
